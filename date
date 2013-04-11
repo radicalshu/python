@@ -1,0 +1,19 @@
+#!/usr/bin/env python
+#shuchu
+months = ['January','February','March','April','May','June','July','Augest','September','October','November','December']
+endings = ['st','nd','rd'] + 17*['th'] + ['st','nd','rd'] + 7*['th'] + ['st'] 
+
+#shuru
+year = raw_input('year: ')
+month = input('month ')
+day = raw_input('day: ')
+
+
+mon = int(month)
+da = int(day)
+
+monthname = months[mon-1]
+ordinal = day + endings[da-1]
+
+print monthname + ' ' + ordinal + '.' + year
+
