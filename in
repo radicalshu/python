@@ -1,0 +1,8 @@
+#!/usr/bin/env python
+database = [ 
+	['shuwei','1234'],
+	['xuebing','1234']
+]
+name = raw_input('Please input your name: ')
+passwd = raw_input('Please input your passwd: ')
+if [name,passwd] in database:print 'Access Permmit'
