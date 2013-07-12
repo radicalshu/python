@@ -1,0 +1,34 @@
+#!/usr/bin/env python
+#design by S.W
+#For auto configure RB2011
+
+import sys
+import os
+import time
+import pexpect
+
+rb_ip = '192.168.88.1'
+#ip = '172.16.0.254'
+user = 'admin'
+passwd = 'exun1234qwe'
+
+def conf():
+    telnet = pexpect.spawn("telnet 172.16.0.254")
+    telnet.expect('Login:')
+    telnet.sendline('admin')
+    telnet.expect('Password:')
+    telnet.sendline("exun1234qwe")
+#    print 'login in sucessfully'
+ #   telnet.close()
+
+
+def telnet_connect():
+        child = pexpect.spawn('telnet 172.16.0.254')
+        child.expect('Login:')
+        child.sendline('admin')
+        child.expect('Password:')
+        child.sendline('exun1234qwe')
+        #child.expect('<H3C>')
+        return child
+
+telnet_connect()
