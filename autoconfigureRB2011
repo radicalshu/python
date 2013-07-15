@@ -11,24 +11,25 @@ rb_ip = '192.168.88.1'
 #ip = '172.16.0.254'
 user = 'admin'
 passwd = 'exun1234qwe'
+loginprompt = '[$#>]'
 
 def conf():
     telnet = pexpect.spawn("telnet 172.16.0.254")
     telnet.expect('Login:')
     telnet.sendline('admin')
     telnet.expect('Password:')
-    telnet.sendline("exun1234qwe")
-#    print 'login in sucessfully'
- #   telnet.close()
+    telnet.sendline('exun1234qwe')
+    telnet.expect(loginprompt)
+    telnet.close()
+    return telnet
 
-
-def telnet_connect():
-        child = pexpect.spawn('telnet 172.16.0.254')
-        child.expect('Login:')
-        child.sendline('admin')
-        child.expect('Password:')
-        child.sendline('exun1234qwe')
+#def telnet_connect():
+#        child = pexpect.spawn('telnet 172.16.0.254')
+ #       child.expect('Login:')
+  #      child.sendline('admin')
+   #     child.expect('Password:')
+    #    child.sendline('exun1234qwe')
         #child.expect('<H3C>')
-        return child
+     #   return child
 
-telnet_connect()
+conf()
