@@ -11,25 +11,56 @@ rb_ip = '192.168.88.1'
 #ip = '172.16.0.254'
 user = 'admin'
 passwd = 'exun1234qwe'
-loginprompt = '[$#>]'
+loginprompt = '[>#$]'
+command = 'system identity set name=shuwei'
 
 def conf():
-    telnet = pexpect.spawn("telnet 172.16.0.254")
-    telnet.expect('Login:')
+    telnet = pexpect.spawn("telnet %s" % rb_ip)
+    telnet.expect('Login: ')
     telnet.sendline('admin')
     telnet.expect('Password:')
-    telnet.sendline('exun1234qwe')
+    telnet.sendline('')
     telnet.expect(loginprompt)
-    telnet.close()
-    return telnet
+    telnet.sendline('system identity set  name=%s' % city + '\r\n')
+    telnet.sendline('ip address add address=%s netmask=%s interface=ether1' % internalip,netmask +'\r\n')
+    telnet.sendline('ip  pool add ranges=%s name=pool' % pool +'\r\n')
+    telnet.sendline('ip dhcp-server remove number=0')
+    telnet.sendline('ip dhcp-server add name=server1 lease-time=02:00:00 interface=ether1 address-pool=pool' + '\r\n')
+    telnet.sendline('ip dhcp-server network add dns-server=%s address=%s/24 gateway=%s' % internalip,network,internalip + '\r\n')
+    #telnet.sendline('' + '\r\n')
+    #print telnet.before
+    #telnet.expect(loginprompt)
+    #return telnet
 
-#def telnet_connect():
-#        child = pexpect.spawn('telnet 172.16.0.254')
- #       child.expect('Login:')
-  #      child.sendline('admin')
-   #     child.expect('Password:')
-    #    child.sendline('exun1234qwe')
-        #child.expect('<H3C>')
-     #   return child
 
-conf()
+def col():
+    city = raw_input('Please intput the city: ')
+    internalip = raw_input('Please intput the internal network ip: ')
+    netmask = raw_input('Netmask: ')
+    network = raw_input('Network: ')
+    pool = raw_input('Ip pool(like 172.16.16.10-172.16.16.240): ')
+    while True:
+        linktype = raw_input('1:PPPOE \n2:Static \nYour choice: ')
+        if linktype == '1':
+            pppoe = raw_input('Please input the pppoe account: ')
+            mima = raw_input('Please input the pppoe password: ')
+            break
+        elif linktype == '2':
+            staticip = raw_input('Please input the staticip: ')
+            staticnetmask = raw_input('Please input the netmask: ')
+            gateway = raw_input('Please input the gateway: ')
+            dns = raw_input('Please input the dns: ')
+            break
+        else:
+            print 'YOU input the wrong number' 
+            continue
+    conf()
+
+def main():
+    
+    col()
+    
+
+
+if __name__ == '__main__':
+    main()
