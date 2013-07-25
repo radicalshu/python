@@ -22,11 +22,12 @@ def conf():
     telnet.sendline('')
     telnet.expect(loginprompt)
     telnet.sendline('system identity set  name=%s' % city + '\r\n')
-    telnet.sendline('ip address add address=%s netmask=%s interface=ether1' % internalip,netmask +'\r\n')
+    telnet.sendline('ip dhcp-client remove numbers=ether1-gateway' + '\r\n')
+    telnet.sendline('ip address add address=%s netmask=%s interface=ether1-gateway' % (internalip,netmask) +'\r\n')
     telnet.sendline('ip  pool add ranges=%s name=pool' % pool +'\r\n')
     telnet.sendline('ip dhcp-server remove number=0')
     telnet.sendline('ip dhcp-server add name=server1 lease-time=02:00:00 interface=ether1 address-pool=pool' + '\r\n')
-    telnet.sendline('ip dhcp-server network add dns-server=%s address=%s/24 gateway=%s' % internalip,network,internalip + '\r\n')
+    telnet.sendline('ip dhcp-server network add dns-server=%s address=%s/24 gateway=%s' % (internalip,network,internalip) + '\r\n')
     #telnet.sendline('' + '\r\n')
     #print telnet.before
     #telnet.expect(loginprompt)
@@ -34,7 +35,19 @@ def conf():
 
 
 def col():
-    city = raw_input('Please intput the city: ')
+    global city
+    global internalip
+    global netmask
+    global network
+    global pool
+    global linktype
+    global staticip
+    global staticnetmask
+    global gateway
+    global dns
+    global pppoe
+    global mima
+    city = raw_input('Please input the city: ')
     internalip = raw_input('Please intput the internal network ip: ')
     netmask = raw_input('Netmask: ')
     network = raw_input('Network: ')
@@ -50,7 +63,7 @@ def col():
             staticnetmask = raw_input('Please input the netmask: ')
             gateway = raw_input('Please input the gateway: ')
             dns = raw_input('Please input the dns: ')
-            break
+            
         else:
             print 'YOU input the wrong number' 
             continue
