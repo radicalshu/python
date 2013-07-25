@@ -99,7 +99,7 @@ def col():
             continue
     conf()
 
-def remove():
+def remove():#remove the default routerboard configuration
     delip = raw_input('remove which ip\'s deafult configuration: ')
     telnet = pexpect.spawn("telnet %s" % delip)
     telnet.expect('Login: ')
@@ -132,14 +132,29 @@ def remove():
 
 
 def main(argv):
-    if argv[1] == 'conf':
-        col()
-    elif argv[1] == 'remove':
-        remove()
-    else:
-        print 'Please choice in (conf,remove)'
-    
-
+    if len(sys.argv)== 2:
+        if argv[1] == 'conf':
+            col()
+        elif argv[1] == 'remove':
+            remove()
+        elif sys.argv[1].startswith('--'):
+            option = sys.argv[1][2:]
+            if option == 'version':
+                print 'autoconf2011-beta-0.1'
+            elif option == 'help':
+                print ''' --------------------------------------------
+The program help you setup the RB2011UAS-RM easily.
+Option include:
+  conf       : Setup the RB2011UAS-RM
+  remove     : Remove the default configuration of the RB2011UAS-RM
+  --version  : Display the version of the program
+  --help     : Display this help.'''
+            else:
+                print 'Please see --help'
+        else:
+            print 'Bad options'
+    else :
+        print 'No options'
 
 if __name__ == '__main__':
     main(sys.argv)
