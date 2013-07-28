@@ -1,6 +1,9 @@
 #!/usr/bin/env python
 #design by S.W
 #For auto configure RB2011
+#version beta0.2
+#ChangeLOG :For sevral wans
+#
 
 import sys
 import os
@@ -8,11 +11,9 @@ import time
 import pexpect
 
 rb_ip = '192.168.88.1'
-#ip = '172.16.0.254'
 user = 'admin'
 #passwd = 'exun1234qwe'
 loginprompt = '[>#$]'
-#command = 'system identity set name=shuwei'
 
 def conf():
     telnet = pexpect.spawn("telnet %s" % rb_ip)
@@ -35,13 +36,15 @@ def conf():
     telnet.sendline('ip dhcp-server network remove numbers=1' + '\r\n')
     telnet.sendline('ip  dns set server=%s allow-remote-requests=yes '% internalip + '\r\n')
     telnet.sendline('ip firewall nat remove numbers=0,1' + '\r\n')
-    if linktype == '1':
-        telnet.sendline('interface pppoe-client add interface=ether10-slave-local user=haha password=aa disabled=no use-peer-dns=yes add-default-route=yes' + '\r\n')
-        telnet.sendline('ip firewall nat add chain=srcnat action=masquerade out-interface=pppoe-out1' + '\r\n' )
-    else :
-        telnet.sendline('ip address add address=%s netmask=%s  disable=no interface=ether10-slave-local' % (staticip,staticnetmask) + '\r\n')
-        telnet.sendline('ip route add dst-address=0.0.0.0/0 gateway=%s distance=3 check-gateway=ping' %gateway + '\r\n'  ) 
-        telnet.sendline('ip firewall nat add chain=srcnat action=masquerade out-interface=ether10-slave-local' +'\r\n')
+    for i in range(numbers):
+        if linktype[i] == '1':
+            telnet.sendline('interface pppoe-client add interface=ether%s-slave-local name=pppoe-out%s user=%s password=%s disabled=no use-peer-dns=yes add-default-route=yes' % (10-i,i+1,pppoe[i],mima[i])+ '\r\n')
+            telnet.sendline('ip firewall nat add chain=srcnat action=masquerade out-interface=pppoe-out%s'% (i+1) + '\r\n' )
+            telnet.sendline('ip route add dst-address=0.0.0.0/0 gateway=pppoe-out%s distance=5 check-gateway=ping'% (i+1)+ '\r\n')
+        else :
+            telnet.sendline('ip address add address=%s netmask=%s  disable=no interface=ether%s-slave-local' % (staticip[i],staticnetmask[i],10-i) + '\r\n')
+            telnet.sendline('ip route add dst-address=0.0.0.0/0 gateway=%s distance=5 check-gateway=ping' %gateway[i] + '\r\n'  ) 
+            telnet.sendline('ip firewall nat add chain=srcnat action=masquerade out-interface=ether%s-slave-local'% (10-i) +'\r\n')
     telnet.sendline('interface l2tp-client add  user=%s password=mt@009009 disable=no comment=vpn connect-to=119.253.36.34 name=l2tp-out1' % city +'\r\n')
     telnet.sendline('ip firewall nat add chain=srcnat action=masquerade out-interface=l2tp-out1'+ '\r\n')
     telnet.sendline('ip route add dst-address=192.168.0.0/16 gateway=172.16.0.1 distance=4 check-gateway=ping' + '\r\n')
@@ -70,33 +73,57 @@ def col():
     global netmask
     global network
     global pool
-    global linktype
+    global linktype #the way connect to the internet
     global staticip
     global staticnetmask
     global gateway
     global dns
     global pppoe
-    global mima
+    global mima #password of the pppoe account
+    #global i
+    linktype = []
+    staticip = []
+    staticnetmask = []
+    gateway = []
+    dns = []
+    pppoe = []
+    mima = []
     city = raw_input('Please input the city: ')
+    numbers = input('Please input the counts of the lines: ')
     internalip = raw_input('Please intput the internal network ip: ')
     netmask = raw_input('Netmask: ')
     network = raw_input('Network: ')
     pool = raw_input('Ip pool(like 172.16.16.10-172.16.16.240): ')
-    while True:
-        linktype = raw_input('1:PPPOE \n2:Static \nYour choice: ')
-        if linktype == '1':
-            pppoe = raw_input('Please input the pppoe account: ')
-            mima = raw_input('Please input the pppoe password: ')
-            break
-        elif linktype == '2':
-            staticip = raw_input('Please input the staticip: ')
-            staticnetmask = raw_input('Please input the netmask: ')
-            gateway = raw_input('Please input the gateway: ')
-            dns = raw_input('Please input the dns: ')
-            break 
-        else:
-            print 'YOU input the wrong number' 
-            continue
+    for i in range(numbers):
+        while True:
+            #linktype[i] = input('1:PPPOE \n2:Static \nYour choice: ')
+            a = raw_input('1:PPPOE \n2:Static \nYour choice: ')
+            linktype.extend(a)
+            if linktype[i] == '1':
+                #pppoe[i] = input('Please input the pppoe account: ')
+                pppoe_cache = raw_input('Please input the pppoe account: ')
+                pppoe.extend(pppoe_cache)
+                #mima[i] = input('Please input the pppoe password: ')
+                mima_cache = raw_input('Please input the pppoe password: ')
+                mima.extend(mima_cache)
+                break
+            elif linktype[i] == '2':
+		staticip_cache = raw_input('Please input the staticip: ')
+                staticip.extend(staticip_cache)
+                #staticip[i] = input('Please input the staticip: ')
+                #staticnetmask[i] = input('Please input the netmask: ')
+                staticnetmask_cache = raw_input('Please input the netmask: ')
+                staticnetmask.extend(staticnetmask_cache)
+                #gateway[i] = input('Please input the gateway: ')
+                gateway_cache = raw_input('Please input the gateway: ')
+                gateway.extend(gateway_cache)
+                #dns[i] = input('Please input the dns: ')
+                dns_cache = raw_input('Please input the dns: ')
+                dns.extend(dns_cache)
+                break 
+            else:
+                print 'YOU input the wrong number' 
+                continue
     conf()
 
 def remove():#remove the default routerboard configuration
@@ -140,7 +167,7 @@ def main(argv):
         elif sys.argv[1].startswith('--'):
             option = sys.argv[1][2:]
             if option == 'version':
-                print 'autoconf2011-beta-0.1'
+                print 'autoconf2011-beta-0.2'
             elif option == 'help':
                 print ''' --------------------------------------------
 The program help you setup the RB2011UAS-RM easily.
