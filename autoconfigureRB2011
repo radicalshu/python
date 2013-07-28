@@ -12,7 +12,7 @@ import pexpect
 
 rb_ip = '192.168.88.1'
 user = 'admin'
-#passwd = 'exun1234qwe'
+
 loginprompt = '[>#$]'
 
 def conf():
