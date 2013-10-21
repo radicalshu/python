@@ -1,0 +1,221 @@
+#!/usr/bin/env python
+# encoding: UTF-8
+#design by S.W
+#For auto configure RB2011
+#version beta0.4
+#ChangeLOG :For sevral wans
+#ChangeLOG:fix servel bugs
+#用正则处理下内网地址，简化过程
+
+import sys
+import os
+import time
+import pexpect
+import re
+
+rb_ip = '192.168.88.1'
+user = 'admin'
+
+loginprompt = '[>#$]'
+
+def conf():
+    telnet = pexpect.spawn("telnet %s" % rb_ip)
+    telnet.expect('Login: ')
+    telnet.sendline('admin')
+    telnet.expect('Password:')
+    telnet.sendline('')
+    time.sleep(3)
+    telnet.sendline('\r\n')
+    telnet.expect(loginprompt)
+    telnet.sendline('system identity set  name=%s' % city + '\r\n')
+    telnet.sendline('ip dhcp-client remove numbers=ether1-gateway' + '\r\n')
+    telnet.sendline('ip address add address=%s netmask=%s interface=ether1-gateway' % (internalip,netmask) +'\r\n')
+    telnet.sendline('ip  pool add ranges=%s name=pool' % pool +'\r\n')
+    telnet.sendline('ip dhcp-server remove numbers=0' + '\r\n')
+    time.sleep(1)
+    telnet.sendline('ip dhcp-server add name=server1 lease-time=02:00:00 interface=ether1-gateway address-pool=pool disable=no' + '\r\n')
+    telnet.sendline('ip dhcp-server network add dns-server=%s address=%s/24 gateway=%s' % (internalip,network,internalip) + '\r\n')
+    telnet.sendline('ip dhcp-server network remove numbers=1' + '\r\n')
+    telnet.sendline('ip  dns set server=%s allow-remote-requests=yes '% internalip + '\r\n')
+    telnet.sendline('ip firewall nat remove numbers=0,1' + '\r\n')
+    for i in range(numbers):
+        if linktype[i] == '1':
+            telnet.sendline('interface pppoe-client add interface=ether%s-slave-local name=pppoe-out%s user=%s password=%s disabled=no use-peer-dns=yes add-default-route=yes' % (10-i,i+1,pppoe[i],mima[i])+ '\r\n')
+            telnet.sendline('ip firewall nat add chain=srcnat action=masquerade out-interface=pppoe-out%s'% (i+1) + '\r\n' )
+            telnet.sendline('ip route add dst-address=0.0.0.0/0 gateway=pppoe-out%s distance=5 check-gateway=ping'% (i+1)+ '\r\n')
+        else :
+            telnet.sendline('ip address add address=%s netmask=%s  disable=no interface=ether%s-slave-local' % (staticip[i],staticnetmask[i],10-i) + '\r\n')
+            telnet.sendline('ip route add dst-address=0.0.0.0/0 gateway=%s distance=5 check-gateway=ping' %gateway[i] + '\r\n'  ) 
+            telnet.sendline('ip firewall nat add chain=srcnat action=masquerade out-interface=ether%s-slave-local'% (10-i) +'\r\n')
+    telnet.sendline('interface l2tp-client add  user=%s password=此处隐藏密码 disable=no comment=vpn connect-to=隐藏出口IP name=l2tp-out1' % city +'\r\n')
+    telnet.sendline('ip firewall nat add chain=srcnat action=masquerade out-interface=l2tp-out1'+ '\r\n')
+    telnet.sendline('ip route add dst-address=192.168.0.0/16 gateway=172.16.0.1 distance=4 check-gateway=ping' + '\r\n')
+    telnet.sendline('system clock set time-zone-name=Asia/Shanghai' + '\r\n')
+    telnet.sendline('system ntp client set primary-ntp=202.120.2.101 enabled=yes mode=unicast'+'\r\n')
+    telnet.sendline('ip firewall filter remove numbers=4' + '\r\n')
+    telnet.sendline('ip firewall filter remove numbers=3' + '\r\n')
+    telnet.sendline('ip firewall filter remove numbers=2' + '\r\n')
+    telnet.sendline('ip firewall filter remove numbers=1' + '\r\n')
+    telnet.sendline('ip firewall filter remove numbers=0' + '\r\n')
+    telnet.sendline('user set  numbers=admin password=此处隐藏密码' + '\r\n')
+    telnet.sendline('snmp set enabled=yes trap-version=2' + '\r\n')
+    time.sleep(2)
+    telnet.sendline('snmp community set numbers=0 addresses=172.16.0.1 read-access=yes' + '\r\n')
+
+
+
+
+
+def col():
+    global city
+    global internalip
+    global netmask
+    global network
+    global pool
+    global linktype #the way connect to the internet
+    global staticip
+    global staticnetmask
+    global numbers
+    global gateway
+    global dns
+    global pppoe
+    global mima #password of the pppoe account
+    linktype = []
+    staticip = []
+    staticnetmask = []
+    gateway = []
+    dns = []
+    pppoe = []
+    mima = []
+    city = raw_input('Please input the city: ')
+    numbers = input('Please input the counts of the lines: ')
+    internalip = raw_input('Please intput the internal network ip: ')
+    #netmask = raw_input('Netmask: ')
+    netmask = '255.255.255.0'
+    #network = raw_input('Network: ')
+    internal_match = re.match(r'(\d+.\d+.\d+.)' , internalip) ##正则提取IP前三段
+    internal_cache = internal_match.group()  ##把匹配后结果放入变量
+    network = internal_cache + '0'
+    #pool = raw_input('Ip pool(like 172.16.16.10-172.16.16.240): ')
+    pool = internal_cache + '10-' + internal_cache + '240'
+    print "the network is %s " % network
+    print "the pool is %s "   % pool
+    for i in range(numbers):
+        while True:
+            a = raw_input('1:PPPOE \n2:Static \nYour choice: ')
+            linktype.extend(a)
+            if linktype[i] == '1':
+                pppoe_cache = raw_input('Please input the pppoe account: ')
+                pppoe.append(pppoe_cache)
+                mima_cache = raw_input('Please input the pppoe password: ')
+                mima.append(mima_cache)
+                break
+            elif linktype[i] == '2':
+		staticip_cache = raw_input('Please input the staticip: ')
+                staticip.append(staticip_cache)
+                staticnetmask_cache = raw_input('Please input the netmask: ')
+                staticnetmask.append(staticnetmask_cache)
+                gateway_cache = raw_input('Please input the gateway: ')
+                gateway.append(gateway_cache)
+                dns_cache = raw_input('Please input the dns: ')
+                dns.append(dns_cache)
+                break 
+            else:
+                print 'YOU input the wrong number' 
+                continue
+    conf()
+
+def remove():#remove the default routerboard configuration
+    delip = raw_input('remove which ip\'s deafult configuration: ')
+    telnet = pexpect.spawn("telnet %s" % delip)
+    telnet.expect('Login: ')
+    telnet.sendline('admin')
+    telnet.expect('Password:')
+    telnet.sendline('此处隐藏密码')
+    time.sleep(3)
+    telnet.sendline('\r\n')
+    telnet.expect(loginprompt)
+    telnet.sendline('interface bridge port remove numbers=4' + '\r\n')
+    telnet.sendline('interface bridge port remove numbers=3' + '\r\n')
+    telnet.sendline('interface bridge port remove numbers=2' + '\r\n')
+    telnet.sendline('interface bridge port remove numbers=1' + '\r\n')
+    telnet.sendline('interface bridge port remove numbers=0' + '\r\n')
+    telnet.sendline('interface bridge remove numbers=0' + '\r\n')
+    telnet.sendline('ip address remove numbers=0' + '\r\n')
+    telnet.sendline('interface ethernet set numbers=0 name=ether1' +'\r\n')
+    telnet.sendline('interface ethernet set numbers=5 name=ether6' +'\r\n')
+    telnet.sendline('interface ethernet set numbers=6 name=ether7 master-port=none' +'\r\n')
+    telnet.sendline('interface ethernet set numbers=7 name=ether8 master-port=none' +'\r\n')
+    telnet.sendline('interface ethernet set numbers=8 name=ether9 master-port=none' +'\r\n')
+    telnet.sendline('interface ethernet set numbers=9 name=ether10 master-port=none' +'\r\n')
+    telnet.sendline('interface ethernet set numbers=1 master-port=ether1' +'\r\n')
+    telnet.sendline('interface ethernet set numbers=2 master-port=ether1' +'\r\n')
+    telnet.sendline('interface ethernet set numbers=3 master-port=ether1' +'\r\n')
+    telnet.sendline('interface ethernet set numbers=4 master-port=ether1' +'\r\n')
+    telnet.sendline('ip pool remove numbers=0' + '\r\n')
+
+def update():
+    update_ip = raw_input('Please input the address you want update: ')
+    ftp = pexpect.spawn("ftp %s" % update_ip)
+    user = pexpect.run('whoami')
+    ftp.expect(':')
+    ftp.sendline('admin')
+    ftp.expect('Password:')
+    ftp.sendline('此处隐藏密码')
+    time.sleep(1)
+    ftp.sendline('\r\n')
+    ftp.expect(loginprompt)
+    ftp.sendline('put routeros-mipsbe-6.3.npk')
+    time.sleep(20)
+    ftp.expect(loginprompt)
+    ftp.sendline('quit')
+    telnet = pexpect.spawn('telnet %s' % update_ip)
+    telnet.expect('Login: ')
+    telnet.sendline('admin')
+    telnet.expect('Password:')
+    telnet.sendline('此处隐藏密码')
+    time.sleep(2)
+    telnet.sendline('\r\n')
+    telnet.expect(loginprompt)
+    telnet.sendline('system routerboard upgrade' + '\r\n')
+    telnet.expect('[y/n]')
+    telnet.sendline('y' +'\r\n')
+    time.sleep(2)
+    telnet.expect(loginprompt)
+    telnet.sendline('system reboot' + '\r\n')
+    telnet.expect('[y/n]')
+    telnet.sendline('y'+ '\r\n')
+     
+
+
+
+def main(argv):
+    if len(sys.argv)== 2:
+        if argv[1] == 'conf':
+            col()
+        elif argv[1] == 'remove':
+            remove()
+        elif argv[1] == 'update':
+            update()
+        elif sys.argv[1].startswith('--'):
+            option = sys.argv[1][2:]
+            if option == 'version':
+                print 'autoconf2011-beta-0.2'
+            elif option == 'help':
+                print ''' --------------------------------------------
+The program help you setup the RB2011UAS-RM easily.
+Option include:
+  conf       : Setup the RB2011UAS-RM
+  remove     : Remove the default configuration of the RB2011UAS-RM
+  update     : Update the firmware upgrade to routeros-mipsbe-6.1.npk
+  --version  : Display the version of the program
+  --help     : Display this help.'''
+            else:
+                print 'Please see --help'
+        else:
+            print 'Bad options'
+    else :
+        print 'No options'
+
+if __name__ == '__main__':
+    main(sys.argv)
